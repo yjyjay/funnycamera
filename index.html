@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>볼록 거울 카메라 (Convex Mirror)</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #000; }
+        
+        /* 슬라이더 커스텀 */
+        .slider-wrapper {
+            position: relative;
+            width: 100%;
+            height: 48px;
+            display: flex;
+            align-items: center;
+        }
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+            z-index: 2;
+        }
+        input[type=range]:focus {
+            outline: none;
+        }
+        /* Thumb Style */
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 24px;
+            width: 24px;
+            border-radius: 50%;
+            background: #ffffff;
+            border: 1px solid #e5e5e5;
+            cursor: pointer;
+            margin-top: -10px; /* track height/2 - thumb height/2 */
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+        }
+        /* Track Style */
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            cursor: pointer;
+            background: rgba(255,255,255,0.15);
+            border-radius: 2px;
+        }
+        
+        /* 캔버스 컨테이너가 flex 영역을 채우도록 설정 */
+        #canvas-wrapper {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+        #canvas-element {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+<body class="text-white font-sans antialiased bg-black h-screen flex flex-col">
+
+    <!-- 1. Top Bar -->
+    <header class="flex-none h-16 px-6 flex justify-between items-center bg-black z-10">
+        <div class="flex flex-col">
+            <h1 class="text-lg font-bold tracking-widest text-white">MIRROR</h1>
+            <span class="text-[10px] text-gray-400 tracking-wider">CONVEX CAM</span>
+        </div>
+        <button onclick="toggleCamera()" class="w-10 h-10 rounded-full bg-stone-800 flex items-center justify-center active:bg-stone-700 transition">
+            <i class="ph ph-camera-rotate text-xl text-white"></i>
+        </button>
+    </header>
+
+    <!-- 2. Camera Lens Area (Flexible Height) -->
+    <main class="flex-1 relative bg-black flex items-center justify-center">
+        <!-- Three.js Canvas will be injected here -->
+        <div id="canvas-wrapper"></div>
+        
+        <!-- Flash Effect Overlay -->
+        <div id="flash" class="absolute inset-0 bg-white pointer-events-none opacity-0 z-50 transition-opacity duration-150"></div>
+    </main>
+
+    <!-- 3. Bottom Controls Area (Fixed Height Panel) -->
+    <section class="flex-none bg-stone-900 rounded-t-3xl px-8 pt-8 pb-10 shadow-lg z-20 flex flex-col items-center gap-6">
+        
+        <!-- Sliders -->
+        <div class="w-full max-w-sm space-y-5">
+            
+            <!-- Curvature -->
+            <div class="flex flex-col gap-1">
+                <div class="flex justify-between text-xs text-gray-400 font-medium px-1">
+                    <span>Refraction</span>
+                    <span id="curvature-val">50%</span>
+                </div>
+                <div class="slider-wrapper">
+                    <i class="ph ph-circle text-gray-500 text-lg mr-4"></i>
+                    <input type="range" id="curvature" min="0" max="1.0" step="0.01" value="0.5">
+                    <i class="ph ph-globe text-gray-500 text-lg ml-4"></i>
+                </div>
+            </div>
+
+            <!-- Zoom -->
+            <div class="flex flex-col gap-1">
+                <div class="flex justify-between text-xs text-gray-400 font-medium px-1">
+                    <span>Distance</span>
+                    <span id="zoom-val">100%</span>
+                </div>
+                <div class="slider-wrapper">
+                    <i class="ph ph-minus text-gray-500 text-lg mr-4"></i>
+                    <input type="range" id="zoom" min="0.5" max="1.5" step="0.01" value="1.0">
+                    <i class="ph ph-plus text-gray-500 text-lg ml-4"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Shutter Button -->
+        <div class="mt-2">
+            <button id="shutter-btn" class="w-20 h-20 rounded-full border-4 border-stone-700 bg-stone-800 flex items-center justify-center transition active:scale-95 group">
+                <div class="w-16 h-16 rounded-full bg-white shadow-inner transition group-active:scale-90 group-hover:bg-gray-100"></div>
+            </button>
+        </div>
+
+    </section>
+
+    <!-- Hidden Video Element -->
+    <video id="video" autoplay playsinline style="display:none;"></video>
+
+    <script src="script.js"></script>
+</body>
+</html>
