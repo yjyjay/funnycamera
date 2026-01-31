@@ -1,5 +1,4 @@
-
-        let camera, scene, renderer;
+let camera, scene, renderer;
         let video, texture, material, mesh;
         let stream;
         let facingMode = 'environment';
@@ -27,10 +26,9 @@
 
                 float r = length(p_aspect);
                 
-                // 렌즈 크기 조정 (화면이 작아졌으므로 꽉 차게 보이도록 0.45 -> 가변적으로 조정 가능하나 일단 유지)
-                // 모바일 레이아웃에서는 캔버스 영역 자체가 작을 수 있으므로 
-                // 반지름을 조금 더 키워서(0.48) 여백을 줄임
-                float radius = 0.48; 
+                // 렌즈 크기 조정 (화면이 커졌으므로 반지름 비율도 조정)
+                // 여백을 적당히 두어 깔끔하게 보이도록 0.45 사용
+                float radius = 0.45; 
                 
                 if (r > radius) {
                     if (r < radius + 0.015) {
@@ -79,7 +77,7 @@
             camera = new THREE.OrthographicCamera(width / -2, width / 2, height / 2, height / -2, 1, 1000);
             camera.position.z = 1;
 
-            renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true, alpha: true }); // Alpha true for transparency if needed
+            renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true, alpha: true }); 
             renderer.setSize(width, height);
             renderer.setPixelRatio(window.devicePixelRatio);
             wrapper.appendChild(renderer.domElement);
@@ -90,7 +88,7 @@
             texture = new THREE.VideoTexture(video);
             texture.minFilter = THREE.LinearFilter;
             
-            const geometry = new THREE.PlaneGeometry(width, height); // 초기 지오메트리
+            const geometry = new THREE.PlaneGeometry(width, height);
             
             material = new THREE.ShaderMaterial({
                 uniforms: {
@@ -106,10 +104,8 @@
             mesh = new THREE.Mesh(geometry, material);
             scene.add(mesh);
 
-            // window resize 이벤트 리스너 수정
             window.addEventListener('resize', onWindowResize, false);
             
-            // Slider Event Listeners
             const curvatureInput = document.getElementById('curvature');
             const curvatureVal = document.getElementById('curvature-val');
             const zoomInput = document.getElementById('zoom');
@@ -152,7 +148,6 @@
                 video.play();
             } catch (err) {
                 console.error("Camera Error:", err);
-                // alert("카메라 권한을 허용해주세요.");
             }
         }
 
@@ -162,7 +157,6 @@
         }
 
         function onWindowResize() {
-            // window가 아닌 wrapper 크기 기준
             if (!wrapper) return;
             const width = wrapper.clientWidth;
             const height = wrapper.clientHeight;
@@ -196,17 +190,34 @@
 
             render();
             
-            try {
-                const dataURL = renderer.domElement.toDataURL('image/jpeg', 0.95);
+            // 모바일 호환성을 위한 저장 로직 개선 (Web Share API)
+            renderer.domElement.toBlob(async function(blob) {
+                const fileName = `convex_cam_${Date.now()}.jpg`;
+                const file = new File([blob], fileName, { type: 'image/jpeg' });
+
+                // 1. 모바일 공유하기/저장하기 (Web Share API) 시도
+                if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                    try {
+                        await navigator.share({
+                            files: [file],
+                            title: 'Convex Mirror Photo',
+                            text: '볼록 거울 카메라로 찍은 사진입니다.'
+                        });
+                        return; // 공유 성공 시 함수 종료 (다운로드 링크 실행 안 함)
+                    } catch (err) {
+                        console.log("Share skipped or failed, falling back to download");
+                    }
+                }
+
+                // 2. PC 또는 Share API 미지원 브라우저: 기존 다운로드 링크 방식
                 const link = document.createElement('a');
-                link.download = `convex_cam_${Date.now()}.jpg`;
-                link.href = dataURL;
+                link.download = fileName;
+                link.href = URL.createObjectURL(blob);
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
-            } catch (e) {
-                console.error("Capture failed:", e);
-            }
+                URL.revokeObjectURL(link.href);
+            }, 'image/jpeg', 0.95);
         }
         
         function render() {
