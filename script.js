@@ -182,7 +182,7 @@ let camera, scene, renderer;
                 const fileName = `convex_cam_${Date.now()}.jpg`;
                 const file = new File([blob], fileName, { type: 'image/jpeg' });
                 
-                // 1. 공유하기 시도 (가장 깔끔한 방법)
+                // 1. 공유하기 시도 (가장 권장되는 모바일 UX)
                 if (navigator.canShare && navigator.canShare({ files: [file] })) {
                     try {
                         await navigator.share({
@@ -192,13 +192,25 @@ let camera, scene, renderer;
                         });
                         return; // 공유 성공 시 여기서 종료
                     } catch (err) {
-                        console.log("Share failed or cancelled, falling back to modal");
-                        // 사용자가 취소했거나 에러가 나면 아래 모달 로직으로 넘어감
+                        console.log("Share failed or cancelled, falling back to download/modal");
                     }
                 }
 
-                // 2. 공유 실패 또는 미지원 시: 미리보기 모달 띄우기 (인앱 브라우저 대응)
-                // Blob을 Data URL로 변환하여 이미지 태그에 넣음
+                // 2. 다운로드 링크 시도 (크롬, 삼성인터넷, PC용)
+                // 인앱 브라우저는 이 코드를 무시하지만, 일반 브라우저는 여기서 저장이 시작됨
+                try {
+                    const link = document.createElement('a');
+                    link.download = fileName;
+                    link.href = URL.createObjectURL(blob);
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                } catch(e) {
+                    console.log("Auto download failed");
+                }
+
+                // 3. 미리보기 모달 띄우기 (인앱 브라우저 등 다운로드가 막힌 환경용)
+                // 다운로드가 성공했더라도, 결과물을 보여주는 것은 나쁜 UX가 아니므로 항상 표시
                 const reader = new FileReader();
                 reader.onloadend = function() {
                     const resultImg = document.getElementById('result-image');
